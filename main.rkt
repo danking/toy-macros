@@ -3,7 +3,34 @@
 (provide extend extend-list init-env
          expand my-eval)
 
+(define (expand sexp env)
+  (match sexp
+    ((list 'lambda (list args ...) body ...)
+     (list* 'lambda args (map (let ((new-env
+                                     (foldl (lambda (id old-env)
+                                              (extend id (value) old-env))
+                                            env
+                                            args)))
+                                (lambda (subexp) (expand subexp new-env)))
+                              body)))
+    ((list head args ...)
+     (if (and (symbol? head) (macro? head env))
+         (apply-macro (get head env) sexp)
+         (map (lambda (subexp) (expand subexp env)) sexp)))
+    (_ sexp)))
+
+(define (apply-macro macro sexp)
+  (my-eval `(,macro ',sexp)))
+
+;; environment
 (define init-env (hasheq))
+(define env-with-let
+  (extend 'let
+          '(lambda (stx)
+             `((lambda (,@(map first (second stx)))
+                 ,@(rest (rest stx)))
+               ,@(map second (second stx))))
+          init-env))
 
 (struct value ())
 
@@ -25,40 +52,14 @@
 (define (macro? x env)
   (not (empty? (hash-ref env x '()))))
 
-(define (expand sexp env)
-  (match sexp
-    ((list 'lambda (list args ...) body ...)
-     (list* 'lambda args (map (let ((new-env
-                                     (foldl (lambda (id old-env)
-                                              (extend id (value) old-env))
-                                            env
-                                            args)))
-                                (lambda (subexp) (expand subexp new-env)))
-                              body)))
-    ((list head args ...)
-     (if (and (symbol? head) (macro? head env))
-         (apply-macro (get head env) sexp)
-         (map (lambda (subexp) (expand subexp env)) sexp)))
-    (_ sexp)))
-
-(define env-with-let
-  (extend 'let
-          '(lambda (stx)
-             (match stx
-                    ((list 'let (list (list args vals) ...) body ...)
-                     `((lambda ,args ,@body) ,@vals))))
-          init-env))
-
-(define (apply-macro macro sexp)
-  (eval `(,macro ',sexp)))
-
 ;; simple evaluator
 (struct closure (params body env))
 
 (define (my-eval sexp env)
   (match sexp
     ((? symbol?) (lookup sexp env))
-    ((? number?) sexp)
+    ((? self-eval?) sexp)
+    ((list 'quasiquote body) (my-eval-quasiquote body env))
     ((list 'lambda (list params ...) body ...)
      (closure params body env))
     ((list head tail ...)
@@ -80,3 +81,39 @@
         (env (closure-env closure)))
     (let ((new-env (extend-list params args env)))
       (last (map (lambda (sexp) (my-eval sexp new-env)) body)))))
+
+;; quasiquote
+;; -- I realize this should actually be a macro, but this is easier for now
+(struct splice (ls))
+
+(define (my-eval-quasiquote body env)
+  (match body
+    ((list 'unquote-splicing sexp)
+     (error 'quasiquote "invalid context within quasiquote at: ~a" body))
+    (_ (my-eval-quasiquote))))
+
+(define (my-eval-quasiquote* body env)
+  (match body
+    ((list 'unquote-splicing value)
+     (splice (my-eval value env)))
+    ((? qq-self-eval?) body)
+    ((list 'unquote sexp) (my-eval sexp env))
+    ((list qqvals ...)
+     (join-quasiquoted-values qqvals))))
+
+(define (join-quasiquoted-values qqvals)
+  (foldr (lambda (x xs)
+           (let ((e (my-eval-quasiquote* x env)))
+             (if (splice? e)
+                 (append (splice-ls e) xs)
+                 (cons e xs))))
+         '()
+         qqvals))
+
+(define (qq-self-eval? x)
+  (or (string? x) (number? x) (symbol? x)))
+
+(define (self-eval? x)
+  (or (string? x)
+      (number? x)
+      (and (cons? x) (eq 'quote (first x)))))
