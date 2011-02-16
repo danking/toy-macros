@@ -99,9 +99,9 @@
     ((? qq-self-eval?) body)
     ((list 'unquote sexp) (my-eval sexp env))
     ((list qqvals ...)
-     (join-quasiquoted-values qqvals))))
+     (join-quasiquoted-values qqvals env))))
 
-(define (join-quasiquoted-values qqvals)
+(define (join-quasiquoted-values qqvals env)
   (foldr (lambda (x xs)
            (let ((e (my-eval-quasiquote* x env)))
              (if (splice? e)
