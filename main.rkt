@@ -116,4 +116,4 @@
 (define (self-eval? x)
   (or (string? x)
       (number? x)
-      (and (cons? x) (eq 'quote (first x)))))
+      (and (cons? x) (eq? 'quote (first x)))))
