@@ -1,6 +1,7 @@
 ; -*- mode: scheme -*-
 #lang racket
-(provide (all-defined-out))
+(provide extend extend-list init-env
+         expand my-eval)
 
 (define init-env (hasheq))
 
@@ -16,13 +17,13 @@
          vs))
 
 (define (get x env)
-  (let ((values (hash-ref env x)))
+  (let ((values (hash-ref env x '())))
     (if (empty? values)
         (error 'get "no mapping for ~a" x)
         (first values))))
 
 (define (macro? x env)
-  (not (value? (get x env))))
+  (not (empty? (hash-ref env x '()))))
 
 (define (expand sexp env)
   (match sexp
