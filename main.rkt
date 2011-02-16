@@ -23,15 +23,6 @@
   (my-eval `(,macro ',sexp)))
 
 ;; environment
-(define init-env (hasheq))
-(define env-with-let
-  (extend 'let
-          '(lambda (stx)
-             `((lambda (,@(map first (second stx)))
-                 ,@(rest (rest stx)))
-               ,@(map second (second stx))))
-          init-env))
-
 (struct value ())
 
 (define (extend x v env)
@@ -51,6 +42,15 @@
 
 (define (macro? x env)
   (not (empty? (hash-ref env x '()))))
+
+(define init-env (hasheq))
+(define env-with-let
+  (extend 'let
+          '(lambda (stx)
+             `((lambda (,@(map first (second stx)))
+                 ,@(rest (rest stx)))
+               ,@(map second (second stx))))
+          init-env))
 
 ;; simple evaluator
 (struct closure (params body env))
