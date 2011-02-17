@@ -1,5 +1,6 @@
 #lang racket
 (require rackunit
+         "eval.rkt"
          "main.rkt")
 
 (define macro-tests
