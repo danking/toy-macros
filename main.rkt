@@ -1,6 +1,6 @@
 ; -*- mode: scheme -*-
 #lang racket
-(provide extend extend-list init-env
+(provide extend extend-list init-macro-env init-value-env
          expand my-eval)
 
 (define (expand sexp env)
@@ -41,34 +41,56 @@
         (first values))))
 
 (define (macro? x env)
-  (not (empty? (hash-ref env x '()))))
+  (let ((val (hash-ref env x #f)))
+    (and (cons? val)
+         (not (value? (first val))))))
 
-(define init-env (hasheq))
+(define init-macro-env (hasheq))
 (define env-with-let
   (extend 'let
           '(lambda (stx)
              `((lambda (,@(map first (second stx)))
                  ,@(rest (rest stx)))
                ,@(map second (second stx))))
-          init-env))
+          init-macro-env))
 
 ;; simple evaluator
 (struct closure (params body env))
+(struct primop (proc))
+
+(define-syntax create-primops-env
+  (syntax-rules ()
+    ((create-primops-env x ... env)
+     (extend-list '(x ...) (list (primop x) ...) env))))
+
+(define empty-value-env (hasheq))
+(define init-value-env
+  (create-primops-env first rest second third fourth fifth sixth seventh eighth
+                      car cdr cadr cdar cddr
+                      + - / *
+                      not ormap andmap map foldl foldr
+                      (extend-list '(true false)
+                                   '(#t #f)
+                                   empty-value-env)))
 
 (define (my-eval sexp env)
   (match sexp
     ((? symbol?) (lookup sexp env))
     ((? self-eval?) sexp)
+    ((list 'quote quoted-value) quoted-value)
     ((list 'quasiquote body) (my-eval-quasiquote body env))
     ((list 'lambda (list params ...) body ...)
      (closure params body env))
+    ((list 'if condition true-case false-case)
+     (if (my-eval condition env)
+         (my-eval true-case env)
+         (my-eval false-case env)))
     ((list head tail ...)
      (let* ((procedure (my-eval head env))
-            (closure (if (symbol? procedure)
-                         (get procedure env)
-                         procedure))
             (args (map (lambda (sexp) (my-eval sexp env)) tail)))
-       (my-eval-closure closure args)))))
+       (if (closure? procedure)
+           (my-eval-closure procedure args)
+           (my-eval-primop procedure args))))))
 
 (define (lookup id env)
   (if (hash-has-key? env id)
@@ -82,15 +104,24 @@
     (let ((new-env (extend-list params args env)))
       (last (map (lambda (sexp) (my-eval sexp new-env)) body)))))
 
+(define (my-eval-primop primop args)
+  (apply (primop-proc primop)
+         (map (lambda (x)
+                ;; take care of hofs
+                (cond [(primop? x) (primop-proc x)]
+                      [(closure? x) (lambda args (my-eval-closure x args))]
+                      [else x]))
+              args)))
+
 ;; quasiquote
 ;; -- I realize this should actually be a macro, but this is easier for now
 (struct splice (ls))
 
 (define (my-eval-quasiquote body env)
   (match body
-    ((list 'unquote-splicing sexp)
+    ((list 'unquote-splicing sexp) ;; unquote-splicing cannot be top-level of qq
      (error 'quasiquote "invalid context within quasiquote at: ~a" body))
-    (_ (my-eval-quasiquote))))
+    (_ (my-eval-quasiquote* body env))))
 
 (define (my-eval-quasiquote* body env)
   (match body
