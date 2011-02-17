@@ -42,7 +42,7 @@
                                          ,@(cddr sexp))
                                        ,@(map second (second sexp))))
                                   init-macro-env))
-                  '((lambda (x y) (* 2 (+ x y))) 3 4)))))x
+                  '((lambda (x y) (* 2 (+ x y))) 3 4)))))
 
 (define (eval sexp)
   (my-eval sexp init-value-env))
