@@ -20,7 +20,7 @@
     (_ sexp)))
 
 (define (apply-macro macro sexp)
-  (my-eval `(,macro ',sexp)))
+  (my-eval `(,macro ',sexp) init-value-env))
 
 ;; environment
 (struct value ())
