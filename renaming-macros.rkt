@@ -26,23 +26,49 @@
     ((? literal?) (values sexp rename-ids))
     ((? primitive-syntax? (values sexp rename-ids)))
     ((? symbol?) (rename-id sexp renamed-ids))
-    ((list head tail)
-     (rename&expand (expand head tail renamed-ids env) renamed-ids env))))
+    ((list 'lambda (args ...) body ...)
+     (if (lambda-stx? (lookup-in-env 'lambda env))
+         ()))
+    ((list head tail ...)
+     (rename&expand-list head tail renamed-ids env))))
+
+(define (rename&expand/many-sexps sexps renamed-ids env)
+  (foldr (lambda (sexp result+ids)
+           (let*-values
+               (((result renamed-ids) result+ids)
+                ((new-sexp new-ids) (rename&expand sexp renamed-ids env)))
+             (values (cons new-sexp result)
+                     (cons new-ids renamed-ids))))
+         (values '() renamed-ids)
+         sexps))
+
+(define (rename&expand-list head tail renamed-ids env)
+  (let ((maybe-macro (lookup-in-env head env))
+        (sexp (cons head tail)))
+    (if (not-macro? maybe-macro)
+        (rename&expand/many-sexps sexp
+                                  renamed-ids
+                                  env)
+        (rename&expand-macro maybe-macro
+                             sexp
+                             renamed-ids
+                             env))))
+
+(define (rename&expand-macro macro sexp renamed-ids env)
+  (let-values
+      (((expanded-sexp new-renamed-ids) (expand macro sexp renamed-ids env)))
+    (rename&expand expanded-sexp renamed-ids env)))
 
 ;; expand : SExp SExp [Environment (U Not-Macro SExp)]
-;;       -> SExp [AssocList Symmbol Symbol]
-(define (expand name tail renamed-ids env)
-  (let ((maybe-macro (lookup-in-env name env)))
-    (if (not-macro? maybe-macro)
-        (list head tail)
-        (let* ((*updated-renamed-ids* renamed-ids)
-               (update (lambda (new-renamed-ids)
-                         (set! *updated-renamed-ids* new-renamed-ids))))
-          (values (maybe-macro (cons name tail)
-                               (get-in-macro-renamer update))
-                  *updated-renamed-ids*)))))
+;;       -> SExp [Environment Symbol Symbol]
+(define (expand macro sexp renamed-ids env)
+  (let* ((*updated-renamed-ids* renamed-ids)
+         (update (lambda (new-renamed-ids)
+                   (set! *updated-renamed-ids* new-renamed-ids))))
+    (values (macro sexp (get-in-macro-renamer update))
+            *updated-renamed-ids*)))
 
-;; get-in-macro-renamer : [AssocList Symbol Symbol] (Symbol Symbol -> #<void>)
+;; get-in-macro-renamer : [Environment Symbol Symbol] (Symbol Symbol -> #<void>)
 ;;                     -> Symbol
 ;; takes the `renamed-ids' and produces a procedure which can be passed to a
 ;; macro and used to rename desired symbols.  This procedure will call
