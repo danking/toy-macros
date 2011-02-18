@@ -79,24 +79,22 @@
       (update renamed-ids)
       new-id)))
 
-;; rename-id : Symbol [ListOf (list Symbol Symbol)]
-;;          -> Symbol [AssocList Symbol Symbol]
-(define (rename-id id renamed-ids)
-  (let ((new-id? (assq id renamed-ids)))
-    (or new-id?
-        (find-new-id id renamed-ids 0))))
+(define *gensym-count* 0)
 
-;; find-new-id : Symbol [AssocList Symbol Symbol] Number
-;;            -> Symbol [AssocList Symbol Symbol]
+;; rename-id : Symbol [ListOf (list Symbol Symbol)]
+;;          -> Symbol [Environment Symbol Symbol]
+(define (rename-id id renamed-ids)
+  (if (bound-in-env? id renamed-ids)
+      (values (lookup-in-env id renamed-ids) renamed-ids)
+      (find-new-id id renamed-ids)))
+
+;; find-new-id : Symbol [Environment Symbol Symbol] Number
+;;            -> Symbol [Environment Symbol Symbol]
 ;; finds a an id which hasn't been mapped to (renamed to) yet and adds it to
 ;; the renamed-ids, returning the new id and the new renamed-ids
-(define (find-new-id id renamed-ids n)
-  (let [(new-id (symbol-num id n))]
-    (if (ormap (lambda (mapping)
-                 (eq? new-id (second mapping)))
-               renamed-ids)
-        (find-new-id id renamed-ids (add1 n))
-        (values (ref-stx new-id) (cons (list id new-id))))))
+(define (find-new-id id renamed-ids)
+  (let [(new-id (symbol-num 'g *gensym-count*))]
+    (values (ref-stx new-id) (extend-env/binding id new-id))))
 
 (define (symbol-num id n)
   (string->symbol (string-append (symbol->string id)
