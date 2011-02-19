@@ -38,29 +38,35 @@
                                           'x 2
                                           empty-env)))
                   #t))))
+(define-syntax check-equal-2values?
+  (syntax-rules ()
+    ((_ test actual)
+     (check-equal? (let-values ([(one two) test])
+                     (list one two))
+                   (let-values ([(one two) actual])
+                     (list one two))))))
 
 (define renaming-tests
   (test-suite
    "renaming"
    (test-case
     "find-new-id"
-    (check-equal? (find-new-id 'foo empty-env)
-                  (values (ref-stx 'g0) (extend-env/binding 'foo 'g0
-                                                            empty-env)))
-    (check-equal? (find-new-id 'foo empty-env)
-                  (values (ref-stx 'g1) (extend-env/binding 'foo 'g1
-                                                            empty-env))))))
+    (check-equal-2values? (find-new-id 'foo empty-env)
+                          (values 'foo0
+                                  (extend-env/binding 'foo 'foo0
+                                                      empty-env))))))
 (define expansion-tests
   (test-suite
    "expansion"
    (test-case
     "expand"
-    (check-equal? (expand (lambda (x rename) (rename (second x)))
+    (check-equal-2values? (expand (lambda (x rename) (rename (second x)))
                           '(foo bar)
                           empty-env
                           empty-env)
-                  (values (ref-stx 'g2) (extend-env/binding 'bar 'g2
-                                                            empty-env))))))
+                  (values (ref-stx 'bar0)
+                          (extend-env/binding 'bar 'bar0
+                                              empty-env))))))
 
 
 (define expansion-and-renaming-tests
@@ -68,32 +74,51 @@
    "renaming and expansion"
    (test-case
     "rename&expand-lambda"
-    (check-equal? (rename&expand-lambda 'lambda
+    (check-equal-2values? (rename&expand-lambda 'lambda
                                         '((a b) (a b))
-                                        empty-env
-                                        empty-env)
-                  (values '(lambda (g7 g8) (g8 g7))
-                          (extend-env/binding))))
+                                        initial-rename-env
+                                        initial-value-env)
+                  (values `(lambda (,(ref-stx 'a0) ,(ref-stx 'b0))
+                             (,(ref-stx 'a0) ,(ref-stx 'b0)))
+                          (extend-env/binding
+                           'a 'a0
+                           (extend-env/binding
+                            'b 'b0
+                            initial-rename-env)))))
    (test-case
     "rename&expand"
-    (check-equal? (rename&expand* 'a)
-                  (values (ref-stx 'g3) (extend-env/binding 'a 'g3 empty-env)))
-    (check-equal? (rename&expand* '1)
-                  (values '1 empty-env))
-    (check-equal? (rename&expand* '(lambda (foo bar baz) (foo bar baz)))
-                  (values (list (ref-stx 'g4) (ref-stx 'g5) (ref-stx 'g6))
+    (check-equal-2values? (rename&expand* 'a)
+                  (values (ref-stx 'a0)
+                          (extend-env/binding 'a 'a0 initial-rename-env)))
+    (check-equal-2values? (rename&expand* '1)
+                  (values '1 initial-rename-env))
+    (check-equal-2values? (rename&expand* '(lambda (foo bar baz) (foo bar baz)))
+                  (values (list 'lambda
+                                (list (ref-stx 'foo0)
+                                      (ref-stx 'bar0)
+                                      (ref-stx 'baz0))
+                                (list (ref-stx 'foo0)
+                                      (ref-stx 'bar0)
+                                      (ref-stx 'baz0)))
                           (extend-env/binding
-                           'foo 'g4
+                           'foo 'foo0
                            (extend-env/binding
-                            'bar 'g5
+                            'bar 'bar0
                             (extend-env/binding
-                             'baz 'g6
-                             empty-env)))))
-    (check-equal? (rename&expand '(let ((x 1) (y 2))
+                             'baz 'baz0
+                             initial-rename-env)))))
+    (check-equal-2values? (rename&expand '(let ((x 1) (y 2))
                                     (+ x y))
-                                 initial-rename-env
-                                 initial-value-env)
-                  '((lambda (x y) (+ x y)) 1 2)))))
+                                 rename-env/let
+                                 value-env/let)
+                  (values `((lambda (,(ref-stx 'x0) ,(ref-stx 'y0))
+                              (,(ref-stx '+) ,(ref-stx 'x0) ,(ref-stx 'y0)))
+                            1 2)
+                          (extend-env/binding
+                           'x 'x0
+                           (extend-env/binding
+                            'y 'y0
+                            rename-env/let)))))))
 
 ;; (test-suite
 ;;  "initial examples -- probably not valid"
