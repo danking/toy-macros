@@ -69,7 +69,7 @@
                                         new-value-env)])
           (values `(,id-bound-to-lambda (,@(map ref-stx
                                                 renamed-args))
-                                        renamed-body)
+                                        ,@renamed-body)
                   renamed-env-from-body))))))
 
 ;; rename-ids : [ListOf Symbol] [Environment Symbol]
