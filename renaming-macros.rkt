@@ -22,25 +22,25 @@
 ;;              -> SExp [Environment Symbol]
 ;; renames all the identifiers so that there is no shadowing.  expands macros
 ;; as it goes
-(define (rename&expand sexp renamed-env env)
+(define (rename&expand sexp renamed-env value-env)
   (match sexp
     ((? literal?) (values sexp renamed-env))
     ((? primitive-syntax?) (values sexp renamed-env))
-    ((? symbol?) (rename-id sexp renamed-env))
+    ((? symbol?) (ref-stx (rename-id sexp renamed-env)))
     ((list head tail ...)
      (let [(renamed-id (lookup-in-env head renamed-env))]
-       (match (lookup-in-env renamed-id env)
+       (match (lookup-in-env renamed-id value-env)
          ((? lambda-stx?) (rename&expand-lambda renamed-id
                                                 tail
                                                 renamed-env
-                                                env))
+                                                value-env))
          ((? not-macro?)  (rename&expand/many-sexps sexp
                                                     renamed-env
-                                                    env))
+                                                    value-env))
          (macro           (rename&expand-macro macro
                                                sexp
                                                renamed-env
-                                               env)))))))
+                                               value-env)))))))
 
 ;; rename&expand-lambda : Symbol
 ;;                        [ListOf SExp]
@@ -132,7 +132,8 @@
     (lambda (id renamed-env)
       (let [(new-id (symbol-num 'g *gensym-count*))]
         (set! *gensym-count* (add1 *gensym-count*))
-        (values (ref-stx new-id) (extend-env/binding id new-id renamed-env))))))
+        (values new-id (extend-env/binding id new-id
+                                           renamed-env))))))
 
 (define (symbol-num id n)
   (string->symbol (string-append (symbol->string id)
