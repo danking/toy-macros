@@ -119,30 +119,3 @@
                            (extend-env/binding
                             'y 'y0
                             rename-env/let)))))))
-
-;; (test-suite
-;;  "initial examples -- probably not valid"
-;;  (test-case
-;;   "rename"
-;;   (check-equal? (rename '(lambda (x)
-;;                            (lambda (x)
-;;                              x)))
-;;                 '(lambda (x1)
-;;                    (lambda (x2)
-;;                      x2))))
-;;  (test-case
-;;   "expand"
-;;   (check-equal? (expand '(let ((x 5))
-;;                            x))
-;;                 '((lambda (x) x) 5))
-
-;;   (check-equal? (expand '(let ((x 5))
-;;                            (let ((x 4))
-;;                              x)))
-;;                 '((lambda (x) ((lambda (x) x) 4)) 5)))
-;;  (test-case
-;;   "rename&expand"
-;;   (check-equal? (rename&expand '(let ((x 5))
-;;                                   (let ((x 4))
-;;                                     x)))
-;;                 '((lambda (x1) ((lambda (x2) x2) 4)) 5))))
