@@ -18,7 +18,7 @@
 
 ;; rename&expand : SExp
 ;;                 [Environment Symbol]
-;;                 [Environment (U Not-Macro SExp)]
+;;                 [Environment (U Not-Macro Procedure)]
 ;;              -> SExp [Environment Symbol]
 ;; renames all the identifiers so that there is no shadowing.  expands macros
 ;; as it goes
