@@ -58,35 +58,50 @@
                                                     (list arg (not-macro)))
                                                   renamed-args)
                                              value-env)])
+        (printf "before body\n")
         (let-values
             ([(renamed-body renamed-env-from-body)
               (rename&expand/many-sexps body
                                         new-renamed-env
                                         new-value-env)])
-          (values `(,id-bound-to-lambda (,@renamed-args) renamed-body)
+          (values `(,id-bound-to-lambda (,@(map ref-stx
+                                                renamed-args))
+                                        renamed-body)
                   renamed-env-from-body))))))
 
 ;; rename-ids : [ListOf Symbol] [Environment Symbol]
 ;;           -> [ListOf Symbol] [Environment Symbol]
 (define (rename-ids list-of-ids renaming-environment)
-  (foldr (lambda (id renamed-ids+env)
-           (let*-values ([(renamed-ids env) renamed-ids+env]
-                         [(renamed-id new-env) (find-new-id arg env)])
-             (values (cons renamed-id renamed-ids)
-                     new-env)))
-         (values '() renaming-environent)
-         list-of-ids))
+  (pair->values
+   (foldr (lambda (id renamed-ids+env)
+            (let ([renamed-ids (first renamed-ids+env)]
+                  [env         (second renamed-ids+env)])
+              (let-values ([(renamed-id new-env) (find-new-id id env)])
+                (list (cons renamed-id renamed-ids)
+                      new-env))))
+          (list '() renaming-environment)
+          list-of-ids)))
+
+;; pair->values : (list X Y) -> X Y
+(define (pair->values pair)
+  (values (first pair) (second pair)))
 
 (define (rename&expand/many-sexps sexps renamed-env env)
-  (foldr (lambda (sexp result+env)
-           (let*-values
-               ([(result renamed-env) result+env]
-                [(new-sexp new-renamed-env)
-                 (rename&expand sexp renamed-env env)])
-             (values (cons new-sexp result)
-                     new-renamed-env)))
-         (values '() renamed-env)
-         sexps))
+  (pair->values
+   (foldr (lambda (sexp result+env)
+            (let ([result (first result+env)]
+                  [renamed-env (second result+env)])
+              (printf "before call to rename&expand ~a : ~a : ~a\n"
+                      sexp
+                      renamed-env
+                      env)
+              (let*-values
+                  ([(new-sexp new-renamed-env)
+                    (rename&expand sexp renamed-env env)])
+                (list (cons new-sexp result)
+                      new-renamed-env))))
+          (list '() renamed-env)
+          sexps)))
 
 (define (rename&expand-macro macro sexp renamed-env env)
   (let-values
