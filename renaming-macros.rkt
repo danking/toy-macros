@@ -27,20 +27,10 @@
     ((? literal?) (values sexp renamed-env))
     ((? primitive-syntax?) (values sexp renamed-env))
     ((? symbol?) (rename&expand-symbol sexp renamed-env value-env))
+    ((list (and (? ref-stx?) head) tail ...)
+     (rename&expand-list (ref-stx-id head) tail sexp renamed-env value-env))
     ((list (and (? symbol?) head) tail ...)
-     (let [(renamed-id (lookup-in-env head renamed-env))]
-       (match (lookup-in-env renamed-id value-env)
-         ((? lambda-stx?) (rename&expand-lambda renamed-id
-                                                tail
-                                                renamed-env
-                                                value-env))
-         ((? not-macro?)  (rename&expand/many-sexps sexp
-                                                    renamed-env
-                                                    value-env))
-         (macro           (rename&expand-macro macro
-                                               sexp
-                                               renamed-env
-                                               value-env)))))
+     (rename&expand-list head tail sexp renamed-env value-env))
     ((list head tail ...)
      (rename&expand/many-sexps sexp
                                renamed-env
