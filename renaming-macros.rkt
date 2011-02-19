@@ -145,13 +145,17 @@
 ;;            -> Symbol [Environment Symbol]
 ;; finds a an id which hasn't been mapped to (renamed to) yet and adds it to
 ;; the renamed-env, returning the new id and the new renamed-env
-(define find-new-id
-  (let ((*gensym-count* 0))
-    (lambda (id renamed-env)
-      (let [(new-id (symbol+num 'g *gensym-count*))]
-        (set! *gensym-count* (add1 *gensym-count*))
-        (values new-id (extend-env/binding id new-id
-                                           renamed-env))))))
+(define (find-new-id id renamed-env)
+  (let [(new-id (find-unique-symbol id renamed-env 0))]
+    (values new-id (extend-env/binding id new-id renamed-env))))
+
+;; find-unique-symbol : Symbol [Environment Symbol] -> Symbol
+;; creates a unique version of this symbol which isn't used in the environment
+(define (find-unique-symbol id env i)
+  (let ([next-id (symbol+num id i)])
+    (if (already-mapped-to? next-id env)
+        (find-unique-symbol id env (add1 i))
+        next-id)))
 
 ;; already-mapped-to? : Symbol [Environment Symbol] -> Boolean
 ;; determines if the symbol is one of the values of the environment
