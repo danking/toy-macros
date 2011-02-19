@@ -13,7 +13,7 @@
 
 ;; SExp -> SExp [Environment Symbol]
 (define (rename&expand* sexp)
-  (rename&expand sexp empty-env initial-env))
+  (rename&expand sexp initial-rename-env initial-value-env))
 
 
 ;; rename&expand : SExp
@@ -195,7 +195,24 @@
               (loop (rest env)))))))
 
 (define empty-env '())
-(define initial-env
-  (extend-env/frame (make-frame `((if ,(if-stx))
-                                  (lambda ,(lambda-stx))))
+(define initial-rename-env
+  (extend-env/frame (make-frame `((lambda lambda)
+                                  (+      +)))
                     empty-env))
+(define rename-env/let
+  (extend-env/binding 'let 'let
+                      initial-rename-env))
+(define initial-value-env
+  (extend-env/frame (make-frame `((lambda ,(lambda-stx))
+                                  (+ ,(not-macro))))
+                    empty-env))
+(define value-env/let
+  (extend-env/binding
+   'let
+   (lambda (sexp rename)
+     (let ((bindings (second sexp))
+           (body (cddr sexp)))
+       `((,(rename 'lambda) ,(map first bindings)
+          ,@body)
+         ,@(map second bindings))))
+   initial-value-env))
