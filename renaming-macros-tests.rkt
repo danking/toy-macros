@@ -67,9 +67,8 @@
                            empty-env)))))
   (check-equal? (rename&expand '(let ((x 1) (y 2))
                                   (+ x y))
-                               (extend-env/binding 'let 'let
-                                                   initial-rename-env)
-                               )
+                               initial-rename-env
+                               initial-value-env)
                 '((lambda (x y) (+ x y)) 1 2))))
 
 (test-suite
