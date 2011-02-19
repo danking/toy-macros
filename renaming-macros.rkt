@@ -62,7 +62,6 @@
                                                     (list arg (not-macro)))
                                                   renamed-args)
                                              value-env)])
-        (printf "before body\n")
         (let-values
             ([(renamed-body renamed-env-from-body)
               (rename&expand/many-sexps body
@@ -95,10 +94,6 @@
    (foldr (lambda (sexp result+env)
             (let ([result (first result+env)]
                   [renamed-env (second result+env)])
-              (printf "before call to rename&expand ~a : ~a : ~a\n"
-                      sexp
-                      renamed-env
-                      env)
               (let*-values
                   ([(new-sexp new-renamed-env)
                     (rename&expand sexp renamed-env env)])
