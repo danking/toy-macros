@@ -27,34 +27,59 @@
     ((? literal?) (values sexp renamed-env))
     ((? primitive-syntax?) (values sexp renamed-env))
     ((? symbol?) (rename-id sexp renamed-env))
-    ((list 'lambda (list args ...) body ...)
-     (if (lambda-stx? (lookup-in-env 'lambda env))
-         '...
-         '...))
     ((list head tail ...)
-     (rename&expand-list head tail renamed-env env))))
+     (let [(renamed-id (lookup-in-env head renamed-env))]
+       (match (lookup-in-env renamed-id env)
+         ((? lambda-stx?) (rename&expand-lambda renamed-id
+                                                tail
+                                                renamed-env
+                                                env))
+         ((? not-macro?)  (rename&expand/many-sexps sexp
+                                                    renamed-env
+                                                    env))
+         (macro           (rename&expand-macro macro
+                                               sexp
+                                               renamed-env
+                                               env)))))))
+
+(define (rename&expand-lambda id-bound-to-lambda tail renamed-env value-env)
+  (let ([args (first tail)]
+        [body (rest tail)])
+    (let-values
+        ([(renamed-args new-renamed-env) (rename-ids args renamed-env)])
+      (let ([new-value-env (extend-env/frame (map (lambda (arg)
+                                                    (list arg (not-macro)))
+                                                  renamed-args)
+                                             value-env)])
+        (let-values
+            ([(renamed-body renamed-env-from-body)
+              (rename&expand/many-sexps body
+                                        new-renamed-env
+                                        new-value-env)])
+          (values `(,id-bound-to-lambda (,@renamed-args) renamed-body)
+                  renamed-env-from-body))))))
+
+;; rename-ids : [ListOf Symbol] [Environment Symbol]
+;;           -> [ListOf Symbol] [Environment Symbol]
+(define (rename-ids list-of-ids renaming-environment)
+  (foldr (lambda (id renamed-ids+env)
+           (let*-values ([(renamed-ids env) renamed-ids+env]
+                         [(renamed-id new-env) (find-new-id arg env)])
+             (values (cons renamed-id renamed-ids)
+                     new-env)))
+         (values '() renaming-environent)
+         list-of-ids))
 
 (define (rename&expand/many-sexps sexps renamed-env env)
-  (foldr (lambda (sexp result+ids)
+  (foldr (lambda (sexp result+env)
            (let*-values
-               (((result renamed-env) result+ids)
-                ((new-sexp new-ids) (rename&expand sexp renamed-env env)))
+               ([(result renamed-env) result+env]
+                [(new-sexp new-renamed-env)
+                 (rename&expand sexp renamed-env env)])
              (values (cons new-sexp result)
-                     (cons new-ids renamed-env))))
+                     new-renamed-env)))
          (values '() renamed-env)
          sexps))
-
-(define (rename&expand-list head tail renamed-env env)
-  (let ((maybe-macro (lookup-in-env head env))
-        (sexp (cons head tail)))
-    (if (not-macro? maybe-macro)
-        (rename&expand/many-sexps sexp
-                                  renamed-env
-                                  env)
-        (rename&expand-macro maybe-macro
-                             sexp
-                             renamed-env
-                             env))))
 
 (define (rename&expand-macro macro sexp renamed-env env)
   (let-values
