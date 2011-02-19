@@ -26,7 +26,7 @@
   (match sexp
     ((? literal?) (values sexp renamed-env))
     ((? primitive-syntax?) (values sexp renamed-env))
-    ((? symbol?) (ref-stx (rename-id sexp renamed-env)))
+    ((? symbol?) (rename&expand-symbol sexp renamed-env value-env))
     ((list head tail ...)
      (let [(renamed-id (lookup-in-env head renamed-env))]
        (match (lookup-in-env renamed-id value-env)
@@ -41,6 +41,10 @@
                                                sexp
                                                renamed-env
                                                value-env)))))))
+
+(define (rename&expand-symbol symbol renamed-env value-env)
+  (let-values ([(id renamed-env) (rename-id symbol renamed-env)])
+    (values (ref-stx id) renamed-env)))
 
 ;; rename&expand-lambda : Symbol
 ;;                        [ListOf SExp]
