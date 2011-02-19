@@ -33,9 +33,9 @@
                       (extend-env/binding
                        'foo 'g4
                        (extend-env/binding
-                        'a 'g3
+                        'bar 'g5
                         (extend-env/binding
-                         'a 'g3
+                         'baz 'g6
                          empty-env)))))
 
 (check-equal? (rename '(lambda (x)
