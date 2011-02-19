@@ -56,7 +56,15 @@
                           'bar 'g5
                           (extend-env/binding
                            'baz 'g6
-                           empty-env)))))))
+                           empty-env))))))
+ (test-case
+  "rename&expand-lambda"
+  (check-equal? (rename&expand-lambda 'lambda
+                                      '((a b) (a b))
+                                      empty-env
+                                      empty-env)
+                (values '(lambda (g7 g8) (g9 g7 g8))
+                        (extend-env/binding)))))
 
 (test-suite
  "initial examples -- probably not valid"
