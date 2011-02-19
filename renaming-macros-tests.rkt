@@ -43,6 +43,14 @@
 (test-suite
  "renaming and expansion"
  (test-case
+  "rename&expand-lambda"
+  (check-equal? (rename&expand-lambda 'lambda
+                                      '((a b) (a b))
+                                      empty-env
+                                      empty-env)
+                (values '(lambda (g7 g8) (g8 g7))
+                        (extend-env/binding))))
+ (test-case
   "rename&expand"
   (check-equal? (rename&expand* 'a)
                 (values (ref-stx 'g3) (extend-env/binding 'a 'g3 empty-env)))
@@ -56,15 +64,13 @@
                           'bar 'g5
                           (extend-env/binding
                            'baz 'g6
-                           empty-env))))))
- (test-case
-  "rename&expand-lambda"
-  (check-equal? (rename&expand-lambda 'lambda
-                                      '((a b) (a b))
-                                      empty-env
-                                      empty-env)
-                (values '(lambda (g7 g8) (g9 g7 g8))
-                        (extend-env/binding)))))
+                           empty-env)))))
+  (check-equal? (rename&expand '(let ((x 1) (y 2))
+                                  (+ x y))
+                               (extend-env/binding 'let 'let
+                                                   initial-rename-env)
+                               )
+                '((lambda (x y) (+ x y)) 1 2))))
 
 (test-suite
  "initial examples -- probably not valid"
