@@ -39,41 +39,48 @@
                 (values (ref-stx 'g2) (extend-env/binding 'bar 'g2
                                                           empty-env)))))
 
-(check-equal?)
 
 (test-suite
  "renaming and expansion"
- (check-equal? (rename&expand* 'a)
-               (values (ref-stx 'g3) (extend-env/binding 'a 'g3 empty-env))))
-(check-equal? (rename&expand* '1)
-              (values '1 empty-env))
-(check-equal? (rename&expand* '(lambda (foo bar baz) (foo bar baz)))
-              (values (list (ref-stx 'g4) (ref-stx 'g5) (ref-stx 'g6))
-                      (extend-env/binding
-                       'foo 'g4
-                       (extend-env/binding
-                        'bar 'g5
+ (test-case
+  "rename&expand"
+  (check-equal? (rename&expand* 'a)
+                (values (ref-stx 'g3) (extend-env/binding 'a 'g3 empty-env)))
+  (check-equal? (rename&expand* '1)
+                (values '1 empty-env))
+  (check-equal? (rename&expand* '(lambda (foo bar baz) (foo bar baz)))
+                (values (list (ref-stx 'g4) (ref-stx 'g5) (ref-stx 'g6))
                         (extend-env/binding
-                         'baz 'g6
-                         empty-env)))))
+                         'foo 'g4
+                         (extend-env/binding
+                          'bar 'g5
+                          (extend-env/binding
+                           'baz 'g6
+                           empty-env)))))))
 
-(check-equal? (rename '(lambda (x)
-                         (lambda (x)
-                           x)))
-              '(lambda (x1)
-                 (lambda (x2)
-                   x2)))
+(test-suite
+ "initial examples -- probably not valid"
+ (test-case
+  "rename"
+  (check-equal? (rename '(lambda (x)
+                           (lambda (x)
+                             x)))
+                '(lambda (x1)
+                   (lambda (x2)
+                     x2))))
+ (test-case
+  "expand"
+  (check-equal? (expand '(let ((x 5))
+                           x))
+                '((lambda (x) x) 5))
 
-(check-equal? (expand '(let ((x 5))
-                         x))
-              '((lambda (x) x) 5))
-
-(check-equal? (expand '(let ((x 5))
-                         (let ((x 4))
-                           x)))
-              '((lambda (x) ((lambda (x) x) 4)) 5))
-
-(check-equal? (rename&expand '(let ((x 5))
-                                (let ((x 4))
-                                  x)))
-              '((lambda (x1) ((lambda (x2) x2) 4)) 5))
+  (check-equal? (expand '(let ((x 5))
+                           (let ((x 4))
+                             x)))
+                '((lambda (x) ((lambda (x) x) 4)) 5)))
+ (test-case
+  "rename&expand"
+  (check-equal? (rename&expand '(let ((x 5))
+                                  (let ((x 4))
+                                    x)))
+                '((lambda (x1) ((lambda (x2) x2) 4)) 5))))
