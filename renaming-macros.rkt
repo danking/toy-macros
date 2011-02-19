@@ -124,7 +124,7 @@
   (macro sexp renamer))
 
 ;; get-in-macro-renamer : [Environment Symbol] (Symbol Symbol -> #<void>)
-;;                     -> Symbol
+;;                     -> Ref-Stx
 ;; takes the `renamed-env' and produces a procedure which can be passed to a
 ;; macro and used to rename desired symbols.  This procedure will call
 ;; `update' every time a new `renamed-env' association list is created
@@ -132,7 +132,7 @@
   (lambda (id)
     (let-values (((new-id renamed-env) (rename-id id renamed-env)))
       (update renamed-env)
-      new-id)))
+      (ref-stx new-id))))
 
 ;; rename-id : Symbol [ListOf (list Symbol Symbol)]
 ;;          -> Symbol [Environment Symbol]
