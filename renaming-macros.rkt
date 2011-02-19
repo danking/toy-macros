@@ -42,6 +42,13 @@
                                                renamed-env
                                                env)))))))
 
+;; rename&expand-lambda : Symbol
+;;                        [ListOf SExp]
+;;                        [Environment Symbol]
+;;                        [Environment (U Not-Macro Procedure)]
+;;                     -> SExp [Environment Symbol]
+;; Renames the lambda's arguments and adds them to the value env. Then,
+;; calls rename&expand on the body with the new environments
 (define (rename&expand-lambda id-bound-to-lambda tail renamed-env value-env)
   (let ([args (first tail)]
         [body (rest tail)])
