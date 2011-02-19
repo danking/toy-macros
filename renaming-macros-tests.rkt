@@ -16,7 +16,20 @@
   (check-equal? (extend-env/frame (make-frame '((foo bar) (baz qux)))
                                   (extend-env/frame (make-frame '((a b) (b c)))
                                                     empty-env))
-                '(((foo bar) (baz qux)) ((a b) (b c))))))
+                '(((foo bar) (baz qux)) ((a b) (b c)))))
+ (test-case
+  "already-mapped-to?"
+  (check-equal? (already-mapped-to? 1 empty-env) #f)
+  (check-equal? (already-mapped-to? 1 (extend-env/binding 'x 1 empty-env))
+                #t)
+  (check-equal? (already-mapped-to? 1 (extend-env/binding 'x 0 empty-env))
+                #f)
+  (check-equal? (already-mapped-to? 2 (extend-env/binding
+                                        'y 3
+                                        (extend-env/binding
+                                         'x 2
+                                         empty-env)))
+                #t)))
 
 (test-suite
  "renaming"

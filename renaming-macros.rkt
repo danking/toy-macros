@@ -135,25 +135,34 @@
       new-id)))
 
 ;; rename-id : Symbol [ListOf (list Symbol Symbol)]
-;;          -> Symbol [Environment Symbol Symbol]
+;;          -> Symbol [Environment Symbol]
 (define (rename-id id renamed-env)
   (if (bound-in-env? id renamed-env)
       (values (lookup-in-env id renamed-env) renamed-env)
       (find-new-id id renamed-env)))
 
-;; find-new-id : Symbol [Environment Symbol Symbol]
-;;            -> Symbol [Environment Symbol Symbol]
+;; find-new-id : Symbol [Environment Symbol]
+;;            -> Symbol [Environment Symbol]
 ;; finds a an id which hasn't been mapped to (renamed to) yet and adds it to
 ;; the renamed-env, returning the new id and the new renamed-env
 (define find-new-id
   (let ((*gensym-count* 0))
     (lambda (id renamed-env)
-      (let [(new-id (symbol-num 'g *gensym-count*))]
+      (let [(new-id (symbol+num 'g *gensym-count*))]
         (set! *gensym-count* (add1 *gensym-count*))
         (values new-id (extend-env/binding id new-id
                                            renamed-env))))))
 
-(define (symbol-num id n)
+;; already-mapped-to? : Symbol [Environment Symbol] -> Boolean
+;; determines if the symbol is one of the values of the environment
+(define (already-mapped-to? id env)
+  (ormap (lambda (frame)
+           (ormap (lambda (binding)
+                    (eq? id (second binding)))
+                  frame))
+         env))
+
+(define (symbol+num id n)
   (string->symbol (string-append (symbol->string id)
                                  (number->string n))))
 
