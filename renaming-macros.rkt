@@ -36,6 +36,7 @@
 
 
 ;; SExp -> SExp [Environment Symbol]
+;; top level function which sets default inital environments
 (define (rename&expand* sexp)
   (rename&expand sexp initial-rename-env initial-value-env))
 
