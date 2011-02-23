@@ -1,6 +1,7 @@
 #lang racket
 (require rackunit
-         "renaming-macros.rkt")
+         "renaming-macros.rkt"
+         "environment.rkt")
 
 (provide (all-defined-out))
 

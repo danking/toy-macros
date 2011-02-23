@@ -1,5 +1,6 @@
 #lang racket
 
+(require "environment.rkt")
 (provide (all-defined-out))
 
 (struct primitive-syntax () #:transparent)
