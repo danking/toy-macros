@@ -22,7 +22,8 @@
    (test-case
     "extend-env/frame"
     (check-equal? (extend-env/frame (make-frame '((foo bar) (baz qux)))
-                                    (extend-env/frame (make-frame '((a b) (b c)))
+                                    (extend-env/frame (make-frame '((a b)
+                                                                    (b c)))
                                                       empty-env))
                   '(((foo bar) (baz qux)) ((a b) (b c)))))
    (test-case
