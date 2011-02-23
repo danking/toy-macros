@@ -3,15 +3,14 @@
 (require "environment.rkt")
 (provide (all-defined-out))
 
+;; primitive syntax elements
 (struct primitive-syntax () #:transparent)
 (struct lambda-stx primitive-syntax () #:transparent)
-(struct if-stx primitive-syntax () #:transparent)
 (struct ref-stx primitive-syntax (id) #:transparent)
-
 ;; used to bind non-macro identifiers
 (struct not-macro ())
 
-
+;; prefab enviornments
 (define empty-env '())
 (define initial-rename-env
   (extend-env/frame (make-frame `((lambda lambda)
